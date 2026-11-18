@@ -106,6 +106,28 @@ rm -rf ~/.voiceprompt
 
 ---
 
+## Windows port (v4.2)
+
+oiceprompt_windows.py brings the same HUD experience to Windows 10/11.
+
+- tkinter UI instead of AppKit, same dark neon theme, spectrum meter, history/pins
+- faster-whisper int8 engine (CTranslate2) for fast CPU transcription
+- PyAudio capture; clipboard via pyperclip with clip.exe fallback
+- Optional Ctrl+V auto-paste (pyautogui, opt-in)
+- Optional system tray (pystray + Pillow); closing the window keeps it in the tray
+- Ctrl+Shift+Space hotkey toggle
+- Crash forensics: faulthandler + thread exception logs to ~/.voiceprompt/crash.log
+
+`powershell
+py -m venv .venv
+.venv\Scripts\pip install -r requirements-windows.txt
+.venv\Scripts\python voiceprompt_windows.py
+`
+
+Config, logs and history live in %USERPROFILE%\.voiceprompt\.
+
+---
+
 ## License
 
 MIT — free to use, modify, and share.

@@ -1,0 +1,7 @@
+# Windows port (voiceprompt_windows.py) dependencies
+faster-whisper
+pyaudio
+pyperclip
+pyautogui
+pystray
+Pillow
