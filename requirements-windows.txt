@@ -1,5 +1,8 @@
 # Windows port (voiceprompt_windows.py) dependencies
 faster-whisper
+# faster-whisper 1.2.1 passes metadata_errors= to av.open(); av 16+ removed that kwarg
+# (TypeError on every transcription). Keep av on 15.x until faster-whisper ships a fix.
+av<16
 pyaudio
 pyperclip
 pyautogui
