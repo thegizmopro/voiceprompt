@@ -42,6 +42,16 @@ def _thread_exc(args):
     log.error("Thread crash (%s): %s", getattr(args.thread, "name", "?"), args.exc_value)
 threading.excepthook = _thread_exc
 
+# Single-instance guard (2026-11-19: duplicate instances from Run key + manual starts)
+try:
+    import ctypes
+    _g = ctypes.windll.kernel32.CreateMutexW(None, False, "VoicePrompt_SingleInstance")
+    if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        log.info("Another instance already running - exiting this one.")
+        sys.exit(0)
+except Exception:
+    pass
+
 HISTORY_FILE = LOG_DIR / "history.json"
 PINNED_FILE  = LOG_DIR / "pinned.json"
 MAX_HISTORY  = 100
