@@ -77,22 +77,54 @@ v2 adds the optional floating bubble with an honest permission disclosure.
    (configurable).
 3. Model manager: base.en default, small.en/medium.en optional download,
    sha256-verified, switchable, deletable.
-4. Polish layer v0: capitalization at sentence start, smart spacing, filler
-   removal toggle (rule-based: "um", "uh", repeated words; the Bark-Clean
-   feature, done locally).
+4. Polish layer v0 (rule-based, always available, zero dependencies):
+   capitalization at sentence start, smart spacing, filler removal toggle
+   ("um", "uh", repeated words).
 5. Settings: model choice, filler toggle, silence timeout, vocabulary editor.
 6. Offline proof: airplane-mode integration test in CI.
 
+### Polish layer (staged plan)
+
+Positioning vs Gboard: we do not out-stream Google's recognizer. We win on
+provable locality, custom vocabulary accuracy, and edited output.
+
+- **Stage 0 (v1):** rules. whisper.cpp emits punctuation already; rules add
+  capitalization, spacing, filler strip. Always works, every device, zero cost.
+- **Stage 1 (v1.x):** system on-device AI via AICore (Gemini Nano), when
+  available on the device:
+  - ML Kit GenAI **Proofreading** with `InputType.VOICE` (grammar, homophones,
+    punctuation; tuned for voice input).
+  - ML Kit GenAI **Prompt API** for strict cleanup: remove fillers, accidental
+    repeats, and self-taken-back words; fix punctuation; do not paraphrase or
+    add facts. Short prompt, chunked input.
+  - Zero model weight in our APK; inference on-device; must be probed with
+    availability checks and graceful fallback to Stage 0.
+  - Tradeoff to disclose in-app: the polish model is Google-managed (local
+    inference, system-updated). Users who reject that use Stage 0 or 2.
+- **Stage 2 (v2.x):** LiteRT-LM (`com.google.ai.edge.litertlm`) with a bundled
+  Gemma cleanup model (or a small dictation-cleanup adapter) for devices
+  without AICore and for user-owned weights end to end. (The MediaPipe LLM
+  Inference API is maintenance-only; new work goes to LiteRT-LM.)
+- **Context awareness (v1.x):** the IME can read text around the cursor
+  (getTextBeforeCursor) and pass it as style/continuation context to the
+  polish pass. Local only; this is the WisprFlow context feature without
+  any accessibility permission.
+- **M0 checklist additions:** verify ML Kit genai dependencies do not force a
+  network permission into the manifest; probe AICore availability and quotas
+  on the target device; measure Stage 1 latency (target < 700ms for a short
+  utterance) before promoting it to default.
+
 ## 6. v1.x / v2 roadmap
 
-- v1.1: history (last 50 dictations, local only, clearable), export to file.
-- v1.2: multilingual model support, language picker.
+- v1.1: history (last 50 dictations, local only, clearable), export to file;
+  AICore polish (Stage 1) behind availability probe.
+- v1.2: multilingual model support, language picker; cursor-context polish.
 - v2.0: optional Flow-Bubble overlay + Accessibility Service for
   dictate-anywhere without switching keyboards. Presented as an explicit
   opt-in with a permission explainer. This is the only feature that ever
   needs accessibility, and it stays optional.
-- v2.x: on-device LLM polish pass (grammar/cleanup) behind the same
-  local-only rule; widget trigger; Wear companion.
+- v2.x: LiteRT-LM Gemma polish bundle (Stage 2) for devices without AICore
+  and for user-owned weights; widget trigger; Wear companion.
 
 ## 7. Testing and benchmarks
 
@@ -110,6 +142,8 @@ v2 adds the optional floating bubble with an honest permission disclosure.
 | whisper.cpp too slow on low-end devices | base.en int8 default; Bark 3.0 spike; degrade gracefully with a "processing" state |
 | Bark 3.0 license blocks use | whisper.cpp baseline ships regardless; Bark stays a spike |
 | IME switching friction (users won't switch keyboards) | thin dictation-bar variant; v2 bubble for power users |
+| AICore unavailable or quota-limited on device | Stage 0 rules always ship; Stage 2 LiteRT-LM bundle covers the rest |
+| ML Kit genai deps add network permission silently | M0 manifest check; drop the dependency if violated and rely on Stages 0/2 |
 | Play policy on IMEs (data-safety forms) | no-network manifest keeps the form simple: "no data collected" is literally true |
 | Audio focus conflicts (media playing) | duck audio during recording like Woof's "Muzzle" (AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK) |
 
